@@ -1,0 +1,150 @@
+name: example-build-pipeline
+version: "1.0"
+description: Example CI/CD pipeline demonstrating all features
+
+variables:
+  VERSION: "1.0.0"
+  BUILD_NUMBER: 123
+  DEBUG: false
+
+environment:
+  APP_ENV: production
+  LOG_LEVEL: info
+
+stages:
+  - setup
+  - build
+  - test
+  - package
+  - deploy
+
+steps:
+  setup:
+    init:
+      commands:
+        - echo "Initializing pipeline version ${VERSION}"
+        - echo "Build number: ${BUILD_NUMBER}"
+        - mkdir -p output
+        - echo "Pipeline started at $(date)" > output/start.txt
+      artifacts:
+        - output/start.txt
+      environment:
+        STEP_NAME: init
+
+    dependencies:
+      commands:
+        - echo "Installing dependencies..."
+        - echo "Dependencies installed" > output/deps.txt
+      depends_on:
+        - setup/init
+      artifacts:
+        - output/deps.txt
+      condition: success
+
+  build:
+    compile:
+      commands:
+        - echo "Compiling source code..."
+        - echo "Compiled successfully" > output/build.txt
+        - echo "VERSION=${VERSION}" > output/version.txt
+      depends_on: []
+      artifacts:
+        - output/*.txt
+      inputs:
+        - setup/init:output/start.txt
+      condition: success
+
+    lint:
+      commands:
+        - echo "Running code linting..."
+        - echo "Linting passed"
+      depends_on: []
+      failure_strategy: continue
+      condition: success
+
+  test:
+    unit:
+      commands:
+        - echo "Running unit tests..."
+        - echo "Unit tests passed - coverage 85%" > output/unit_test.txt
+        - echo "85" > output/coverage.txt
+      depends_on:
+        - build/compile
+      artifacts:
+        - output/unit_test.txt
+        - output/coverage.txt
+      inputs:
+        - build/compile:output/*.txt
+      condition: success
+      timeout: 300
+
+    integration:
+      commands:
+        - echo "Running integration tests..."
+        - echo "Integration tests passed" > output/integration_test.txt
+      depends_on:
+        - build/compile
+      artifacts:
+        - output/integration_test.txt
+      failure_strategy: continue
+      condition: success
+      timeout: 600
+
+    security:
+      commands:
+        - echo "Running security scan..."
+        - echo "Security scan completed - no vulnerabilities" > output/security.txt
+      depends_on:
+        - build/compile
+      artifacts:
+        - output/security.txt
+      condition: success
+
+  package:
+    bundle:
+      commands:
+        - echo "Creating deployment package..."
+        - cat output/version.txt output/unit_test.txt > output/package.txt
+        - echo "Package created successfully" >> output/package.txt
+      depends_on:
+        - test/unit
+        - test/integration
+      artifacts:
+        - output/package.txt
+      inputs:
+        - test/*:output/*.txt
+      condition: success
+
+  deploy:
+    staging:
+      commands:
+        - echo "Deploying to staging environment..."
+        - echo "Deployed version ${VERSION} to staging" > output/deploy_staging.txt
+      depends_on:
+        - package/bundle
+      artifacts:
+        - output/deploy_staging.txt
+      inputs:
+        - package/bundle:output/package.txt
+      condition: success
+      failure_strategy: abort
+
+    production:
+      commands:
+        - echo "Deploying to production environment..."
+        - echo "Deployed version ${VERSION} to production" > output/deploy_prod.txt
+      depends_on:
+        - deploy/staging
+      artifacts:
+        - output/deploy_prod.txt
+      condition: "variable.DEBUG == false && success"
+      failure_strategy: abort
+
+    notify:
+      commands:
+        - echo "Sending deployment notification..."
+        - echo "Deployment completed successfully"
+      depends_on:
+        - deploy/production
+      condition: always
+      failure_strategy: continue

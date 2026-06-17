@@ -1,0 +1,8 @@
+{
+  "pipeline_name": "example-build-pipeline",
+  "status": "failed",
+  "started_at": "2026-06-17T10:33:12.091194",
+  "completed_at": "2026-06-17T10:33:12.130290",
+  "outputs": {},
+  "error_message": null
+}
