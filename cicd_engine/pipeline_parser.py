@@ -174,6 +174,8 @@ class PipelineParser:
         if not isinstance(commands, list):
             commands = [commands]
 
+        cls._validate_commands(commands, stage_name, step_name)
+
         depends_on_raw = config.get("depends_on", [])
         if not isinstance(depends_on_raw, list):
             depends_on_raw = [depends_on_raw]
@@ -242,6 +244,44 @@ class PipelineParser:
                     raise PipelineParserError(
                         f"Step '{step_full_name}' cannot depend on "
                         f"'{dep}' which is in a later stage"
+                    )
+
+    @classmethod
+    def _validate_commands(
+        cls, commands: List[Any], stage_name: str, step_name: str
+    ) -> None:
+        """Validate that all commands are strings.
+
+        This catches common YAML parsing issues where commands containing
+        colons are incorrectly parsed as dictionaries.
+
+        Args:
+            commands: List of commands to validate
+            stage_name: Name of the stage containing the step
+            step_name: Name of the step containing the commands
+
+        Raises:
+            PipelineParserError: If any command is not a string
+        """
+        for i, cmd in enumerate(commands):
+            if not isinstance(cmd, str):
+                if isinstance(cmd, dict):
+                    cmd_repr = str(cmd)
+                    example_fix = None
+                    for k, v in cmd.items():
+                        example_fix = f'"{k}: {v}"'
+                        break
+                    raise PipelineParserError(
+                        f"Invalid command in step '{stage_name}/{step_name}' at index {i}:\n"
+                        f"  Command was parsed as a dictionary: {cmd_repr}\n"
+                        f"  This usually happens when a command contains a colon ':' without quotes.\n"
+                        f"  To fix this, wrap the command in quotes, e.g.: {example_fix}"
+                    )
+                else:
+                    raise PipelineParserError(
+                        f"Invalid command in step '{stage_name}/{step_name}' at index {i}:\n"
+                        f"  Expected string, got {type(cmd).__name__}: {cmd!r}\n"
+                        f"  Commands must be strings."
                     )
 
     @classmethod

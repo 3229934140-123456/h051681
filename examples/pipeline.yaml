@@ -22,42 +22,42 @@ steps:
   setup:
     init:
       commands:
-        - echo "Initializing pipeline version ${VERSION}"
-        - echo "Build number: ${BUILD_NUMBER}"
-        - mkdir -p output
-        - echo "Pipeline started at $(date)" > output/start.txt
+        - "echo Initializing pipeline version ${VERSION}"
+        - "echo Build number: ${BUILD_NUMBER}"
+        - "python -c \"import os; os.makedirs('output', exist_ok=True)\""
+        - "python -c \"from datetime import datetime; open('output/start.txt', 'w').write('Pipeline started at ' + datetime.now().isoformat())\""
       artifacts:
-        - output/start.txt
+        - "output/start.txt"
       environment:
         STEP_NAME: init
 
     dependencies:
       commands:
-        - echo "Installing dependencies..."
-        - echo "Dependencies installed" > output/deps.txt
+        - "echo Installing dependencies..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/deps.txt', 'w').write('Dependencies installed')\""
       depends_on:
-        - setup/init
+        - "setup/init"
       artifacts:
-        - output/deps.txt
+        - "output/deps.txt"
       condition: success
 
   build:
     compile:
       commands:
-        - echo "Compiling source code..."
-        - echo "Compiled successfully" > output/build.txt
-        - echo "VERSION=${VERSION}" > output/version.txt
+        - "echo Compiling source code..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/build.txt', 'w').write('Compiled successfully')\""
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/version.txt', 'w').write('VERSION=${VERSION}')\""
       depends_on: []
       artifacts:
-        - output/*.txt
+        - "output/*.txt"
       inputs:
-        - setup/init:output/start.txt
+        - "setup/init:output/start.txt"
       condition: success
 
     lint:
       commands:
-        - echo "Running code linting..."
-        - echo "Linting passed"
+        - "echo Running code linting..."
+        - "echo Linting passed"
       depends_on: []
       failure_strategy: continue
       condition: success
@@ -65,86 +65,89 @@ steps:
   test:
     unit:
       commands:
-        - echo "Running unit tests..."
-        - echo "Unit tests passed - coverage 85%" > output/unit_test.txt
-        - echo "85" > output/coverage.txt
+        - "echo Running unit tests..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/unit_test.txt', 'w').write('Unit tests passed - coverage 85%')\""
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/coverage.txt', 'w').write('85')\""
       depends_on:
-        - build/compile
+        - "build/compile"
       artifacts:
-        - output/unit_test.txt
-        - output/coverage.txt
+        - "output/unit_test.txt"
+        - "output/coverage.txt"
       inputs:
-        - build/compile:output/*.txt
+        - "build/compile:output/*.txt"
       condition: success
       timeout: 300
 
     integration:
       commands:
-        - echo "Running integration tests..."
-        - echo "Integration tests passed" > output/integration_test.txt
+        - "echo Running integration tests..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/integration_test.txt', 'w').write('Integration tests passed')\""
       depends_on:
-        - build/compile
+        - "build/compile"
       artifacts:
-        - output/integration_test.txt
+        - "output/integration_test.txt"
       failure_strategy: continue
       condition: success
       timeout: 600
 
     security:
       commands:
-        - echo "Running security scan..."
-        - echo "Security scan completed - no vulnerabilities" > output/security.txt
+        - "echo Running security scan..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/security.txt', 'w').write('Security scan completed - no vulnerabilities')\""
       depends_on:
-        - build/compile
+        - "build/compile"
       artifacts:
-        - output/security.txt
+        - "output/security.txt"
       condition: success
 
   package:
     bundle:
       commands:
-        - echo "Creating deployment package..."
-        - cat output/version.txt output/unit_test.txt > output/package.txt
-        - echo "Package created successfully" >> output/package.txt
+        - "echo Creating deployment package..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); v=open('output/version.txt').read(); u=open('output/unit_test.txt').read(); open('output/package.txt','w').write(v+'\\n'+u+'\\nPackage created successfully')\""
       depends_on:
-        - test/unit
-        - test/integration
+        - "test/unit"
+        - "test/integration"
       artifacts:
-        - output/package.txt
+        - "output/package.txt"
       inputs:
-        - test/*:output/*.txt
+        - "build/compile:output/*.txt"
+        - "test/unit:output/*.txt"
+        - "test/integration:output/*.txt"
       condition: success
 
   deploy:
     staging:
       commands:
-        - echo "Deploying to staging environment..."
-        - echo "Deployed version ${VERSION} to staging" > output/deploy_staging.txt
+        - "echo Deploying to staging environment..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/deploy_staging.txt', 'w').write('Deployed version ${VERSION} to staging')\""
       depends_on:
-        - package/bundle
+        - "package/bundle"
       artifacts:
-        - output/deploy_staging.txt
+        - "output/deploy_staging.txt"
       inputs:
-        - package/bundle:output/package.txt
+        - "package/bundle:output/package.txt"
       condition: success
       failure_strategy: abort
 
     production:
       commands:
-        - echo "Deploying to production environment..."
-        - echo "Deployed version ${VERSION} to production" > output/deploy_prod.txt
+        - "echo Deploying to production environment..."
+        - "python -c \"import os; os.makedirs('output', exist_ok=True); open('output/deploy_prod.txt', 'w').write('Deployed version ${VERSION} to production')\""
       depends_on:
-        - deploy/staging
+        - "deploy/staging"
       artifacts:
-        - output/deploy_prod.txt
+        - "output/deploy_prod.txt"
+      inputs:
+        - "deploy/staging:output/deploy_staging.txt"
       condition: "variable.DEBUG == false && success"
       failure_strategy: abort
 
     notify:
       commands:
-        - echo "Sending deployment notification..."
-        - echo "Deployment completed successfully"
+        - "echo Sending deployment notification..."
+        - "echo Deployment completed successfully"
       depends_on:
-        - deploy/production
+        - "deploy/production"
       condition: always
       failure_strategy: continue

@@ -156,12 +156,7 @@ class ConditionEvaluator:
 
             if actual_var_name:
                 value = self.variables[actual_var_name]
-                if isinstance(value, str):
-                    replacement = f"'{value}'"
-                elif isinstance(value, bool):
-                    replacement = str(value).lower()
-                else:
-                    replacement = str(value)
+                replacement = self._format_value_for_eval(value)
                 expr = expr.replace(match.group(0), replacement)
             else:
                 expr = expr.replace(match.group(0), "None")
@@ -207,18 +202,34 @@ class ConditionEvaluator:
                                 break
 
             if found:
-                if isinstance(value, str):
-                    replacement = f"'{value}'"
-                elif isinstance(value, bool):
-                    replacement = str(value).lower()
-                elif value is None:
-                    replacement = "None"
-                else:
-                    replacement = str(value)
+                replacement = self._format_value_for_eval(value)
                 expr = expr.replace(match.group(0), replacement)
             else:
                 expr = expr.replace(match.group(0), "None")
         return expr
+
+    def _format_value_for_eval(self, value: Any) -> str:
+        """Format a value for safe inclusion in an eval expression.
+
+        This method properly handles strings containing quotes, spaces,
+        and other special characters by using repr() for proper escaping.
+
+        Args:
+            value: The value to format
+
+        Returns:
+            A string representation of the value that can be safely used in eval()
+        """
+        if value is None:
+            return "None"
+        elif isinstance(value, bool):
+            return str(value).lower()
+        elif isinstance(value, str):
+            return repr(value)
+        elif isinstance(value, (int, float)):
+            return str(value)
+        else:
+            return repr(str(value))
 
     def _replace_keywords(self, expr: str, step: Step) -> str:
         import re
@@ -454,6 +465,33 @@ class PipelineScheduler:
         )
 
         try:
+            failed_deps = []
+            for dep_name in step.depends_on:
+                dep_result = step_results.get(dep_name)
+                if dep_result and dep_result.status == StepStatus.FAILED:
+                    failed_deps.append(dep_name)
+
+            if failed_deps:
+                condition_str = step.condition or "success"
+                condition_lower = condition_str.lower().strip()
+
+                allows_failure = (
+                    "failure" in condition_lower
+                    or "always" in condition_lower
+                )
+
+                if not allows_failure:
+                    result.status = StepStatus.SKIPPED
+                    result.completed_at = datetime.now()
+                    skip_reason = f"skipped due to failed dependencies: {', '.join(failed_deps)}"
+                    await self._log(
+                        f"{skip_reason} (condition: {condition_str})",
+                        step_full_name,
+                        "info",
+                        run_id,
+                    )
+                    return result
+
             condition_evaluator = ConditionEvaluator(merged_vars, step_results)
             if step.condition and not condition_evaluator.evaluate(
                 step.condition, step

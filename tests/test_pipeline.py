@@ -824,5 +824,194 @@ class TestStateManager:
             assert stats["success_rate"] == 0.0
 
 
+class TestCommandValidation:
+    """Tests for command validation during parsing."""
+
+    def test_detect_dict_command(self):
+        bad_yaml = """
+name: test
+stages:
+  - build
+steps:
+  build:
+    bad:
+      commands:
+        - echo Build number: 123
+"""
+        with pytest.raises(PipelineParserError) as excinfo:
+            PipelineParser.parse_yaml(bad_yaml)
+        assert "Invalid command" in str(excinfo.value)
+        assert "dictionary" in str(excinfo.value)
+        assert "colon" in str(excinfo.value)
+
+    def test_detect_non_string_command(self):
+        bad_yaml = """
+name: test
+stages:
+  - build
+steps:
+  build:
+    bad:
+      commands:
+        - 12345
+        - echo hello
+"""
+        with pytest.raises(PipelineParserError) as excinfo:
+            PipelineParser.parse_yaml(bad_yaml)
+        assert "Invalid command" in str(excinfo.value)
+        assert "int" in str(excinfo.value)
+
+    def test_valid_quoted_commands(self):
+        good_yaml = """
+name: test
+stages:
+  - build
+steps:
+  build:
+    good:
+      commands:
+        - "echo Build number: 123"
+        - 'echo Hello: World'
+"""
+        pipeline = PipelineParser.parse_yaml(good_yaml)
+        assert pipeline.steps["build/good"].commands == [
+            "echo Build number: 123",
+            "echo Hello: World",
+        ]
+
+
+class TestFailureStrategySkipDeps:
+    """Tests for skipping steps that depend on failed steps."""
+
+    @pytest.mark.asyncio
+    async def test_skip_steps_depending_on_failed(self):
+        if os.name == "nt":
+            fail_cmd = "cmd /c exit 1"
+        else:
+            fail_cmd = "exit 1"
+
+        yaml_content = f"""
+name: test
+stages:
+  - build
+  - test
+steps:
+  build:
+    fail:
+      commands:
+        - {fail_cmd}
+      failure_strategy: continue
+    ok:
+      commands:
+        - echo ok
+      depends_on: []
+  test:
+    should_skip:
+      commands:
+        - echo should not run
+      depends_on:
+        - build/fail
+      condition: success
+    should_run:
+      commands:
+        - echo should run
+      depends_on:
+        - build/ok
+      condition: success
+    should_run_failure:
+      commands:
+        - echo should run on failure
+      depends_on:
+        - build/fail
+      condition: failure
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline = PipelineParser.parse_yaml(yaml_content)
+            scheduler = PipelineScheduler(
+                execution_env=SubprocessEnvironment(base_workdir=tmpdir + "/workspace"),
+                artifact_manager=ArtifactManager(base_dir=tmpdir + "/artifacts"),
+                log_stream=LogStream(),
+                max_parallel=2,
+                base_workdir=tmpdir + "/workspace",
+            )
+            result = await scheduler.run(pipeline)
+
+            assert result.step_results["build/fail"].status == StepStatus.FAILED
+            assert result.step_results["build/ok"].status == StepStatus.SUCCESS
+            assert result.step_results["test/should_skip"].status == StepStatus.SKIPPED
+            assert result.step_results["test/should_run"].status == StepStatus.SUCCESS
+            assert result.step_results["test/should_run_failure"].status == StepStatus.SUCCESS
+
+
+class TestSpecialCharacterVariables:
+    """Tests for condition evaluation with special character variables."""
+
+    def test_variable_with_single_quote(self):
+        evaluator = ConditionEvaluator({"VERSION": "1.0.0'beta"}, {})
+        step = Step(name="test", stage="test", commands=["echo"], failure_strategy=FailureStrategy.ABORT)
+        condition = 'variable.VERSION == "1.0.0\'beta"'
+        assert evaluator.evaluate(condition, step) is True
+
+    def test_variable_with_spaces(self):
+        evaluator = ConditionEvaluator({"APP_NAME": "My Awesome App"}, {})
+        step = Step(name="test", stage="test", commands=["echo"], failure_strategy=FailureStrategy.ABORT)
+        condition = "variable.APP_NAME == 'My Awesome App'"
+        assert evaluator.evaluate(condition, step) is True
+
+    def test_variable_with_special_chars(self):
+        evaluator = ConditionEvaluator({"TAG": "release-v1.0!@#$%"}, {})
+        step = Step(name="test", stage="test", commands=["echo"], failure_strategy=FailureStrategy.ABORT)
+        condition = "variable.TAG == 'release-v1.0!@#$%'"
+        assert evaluator.evaluate(condition, step) is True
+
+    def test_variable_with_backslash(self):
+        evaluator = ConditionEvaluator({"PATH": "C:\\Users\\test"}, {})
+        step = Step(name="test", stage="test", commands=["echo"], failure_strategy=FailureStrategy.ABORT)
+        condition = "variable.PATH == 'C:\\\\Users\\\\test'"
+        assert evaluator.evaluate(condition, step) is True
+
+    def test_variable_with_double_quote(self):
+        evaluator = ConditionEvaluator({"VERSION": '1.0.0"beta'}, {})
+        step = Step(name="test", stage="test", commands=["echo"], failure_strategy=FailureStrategy.ABORT)
+        condition = 'variable.VERSION == \'1.0.0"beta\''
+        assert evaluator.evaluate(condition, step) is True
+
+    def test_boolean_expression_with_special_chars(self):
+        evaluator = ConditionEvaluator(
+            {"VERSION": "1.0.0'beta", "DEBUG": False, "APP": "My App"}, {}
+        )
+        step = Step(name="test", stage="test", commands=["echo"], failure_strategy=FailureStrategy.ABORT)
+        condition = "variable.VERSION == \"1.0.0'beta\" && variable.DEBUG == false && variable.APP == 'My App'"
+        assert evaluator.evaluate(condition, step) is True
+
+    @pytest.mark.asyncio
+    async def test_special_chars_via_cli_vars(self):
+        yaml_content = """
+name: test
+stages:
+  - test
+steps:
+  test:
+    verify:
+      commands:
+        - "echo OK"
+      condition: "variable.NAME == 'Test App'"
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline = PipelineParser.parse_yaml(yaml_content)
+            pipeline.variables["VERSION"] = "1.0.0'beta"
+            pipeline.variables["NAME"] = "Test App"
+
+            scheduler = PipelineScheduler(
+                execution_env=SubprocessEnvironment(base_workdir=tmpdir + "/workspace"),
+                artifact_manager=ArtifactManager(base_dir=tmpdir + "/artifacts"),
+                log_stream=LogStream(),
+                max_parallel=1,
+                base_workdir=tmpdir + "/workspace",
+            )
+            result = await scheduler.run(pipeline)
+            assert result.step_results["test/verify"].status == StepStatus.SUCCESS
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -1,0 +1,27 @@
+{
+  "step_name": "init",
+  "stage_name": "setup",
+  "status": "failed",
+  "exit_code": 1,
+  "started_at": "2026-06-17T10:45:10.976865",
+  "completed_at": "2026-06-17T10:45:11.002932",
+  "logs": [
+    "$ echo Initializing pipeline version 1.0.0",
+    "Initializing pipeline version 1.0.0",
+    "$ {'echo Build number': '${BUILD_NUMBER}'}",
+    "'{'echo' \ufffd\ufffd\ufffd\ufffd\ufffd\u06b2\ufffd\ufffd\ufffd\ufffd\u2cbf\ufffd\ufffd\ufffd\ue8ec\u04b2\ufffd\ufffd\ufffd\u01ff\ufffd\ufffd\ufffd\ufffd\u0435\u0133\ufffd\ufffd\ufffd",
+    "\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u013c\ufffd\ufffd\ufffd",
+    "Command failed with exit code 1, stopping step execution"
+  ],
+  "outputs": {
+    "exit_code": 1,
+    "stdout": [
+      "Initializing pipeline version 1.0.0"
+    ],
+    "stderr": [
+      "'{'echo' \ufffd\ufffd\ufffd\ufffd\ufffd\u06b2\ufffd\ufffd\ufffd\ufffd\u2cbf\ufffd\ufffd\ufffd\ue8ec\u04b2\ufffd\ufffd\ufffd\u01ff\ufffd\ufffd\ufffd\ufffd\u0435\u0133\ufffd\ufffd\ufffd",
+      "\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u013c\ufffd\ufffd\ufffd"
+    ]
+  },
+  "error_message": "Command failed with exit code 1"
+}

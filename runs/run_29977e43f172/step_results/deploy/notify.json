@@ -1,0 +1,23 @@
+{
+  "step_name": "notify",
+  "stage_name": "deploy",
+  "status": "success",
+  "exit_code": 0,
+  "started_at": "2026-06-17T11:14:14.044777",
+  "completed_at": "2026-06-17T11:14:14.067431",
+  "logs": [
+    "$ echo Sending deployment notification...",
+    "Sending deployment notification...",
+    "$ echo Deployment completed successfully",
+    "Deployment completed successfully"
+  ],
+  "outputs": {
+    "exit_code": 0,
+    "stdout": [
+      "Sending deployment notification...",
+      "Deployment completed successfully"
+    ],
+    "stderr": []
+  },
+  "error_message": null
+}

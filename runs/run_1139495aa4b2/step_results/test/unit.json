@@ -1,0 +1,22 @@
+{
+  "step_name": "unit",
+  "stage_name": "test",
+  "status": "success",
+  "exit_code": 0,
+  "started_at": "2026-06-17T10:47:00.570615",
+  "completed_at": "2026-06-17T10:47:00.765344",
+  "logs": [
+    "$ echo Running unit tests...",
+    "Running unit tests...",
+    "$ python -c \"import os; os.makedirs('output', exist_ok=True); open('output/unit_test.txt', 'w').write('Unit tests passed - coverage 85%')\"",
+    "$ python -c \"import os; os.makedirs('output', exist_ok=True); open('output/coverage.txt', 'w').write('85')\""
+  ],
+  "outputs": {
+    "exit_code": 0,
+    "stdout": [
+      "Running unit tests..."
+    ],
+    "stderr": []
+  },
+  "error_message": null
+}

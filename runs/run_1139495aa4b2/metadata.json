@@ -1,0 +1,10 @@
+{
+  "run_id": "run_1139495aa4b2",
+  "pipeline_name": "example-build-pipeline",
+  "status": "failed",
+  "started_at": "2026-06-17T10:47:00.351009",
+  "completed_at": "2026-06-17T10:47:00.773147",
+  "duration_seconds": 0.422138,
+  "step_count": 7,
+  "failed_steps": 1
+}

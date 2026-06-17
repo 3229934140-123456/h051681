@@ -1,0 +1,21 @@
+{
+  "step_name": "integration",
+  "stage_name": "test",
+  "status": "success",
+  "exit_code": 0,
+  "started_at": "2026-06-17T10:47:00.576029",
+  "completed_at": "2026-06-17T10:47:00.684000",
+  "logs": [
+    "$ echo Running integration tests...",
+    "Running integration tests...",
+    "$ python -c \"import os; os.makedirs('output', exist_ok=True); open('output/integration_test.txt', 'w').write('Integration tests passed')\""
+  ],
+  "outputs": {
+    "exit_code": 0,
+    "stdout": [
+      "Running integration tests..."
+    ],
+    "stderr": []
+  },
+  "error_message": null
+}

@@ -1,0 +1,33 @@
+{
+  "step_name": "bundle",
+  "stage_name": "package",
+  "status": "failed",
+  "exit_code": 1,
+  "started_at": "2026-06-17T11:13:02.177914",
+  "completed_at": "2026-06-17T11:13:02.309855",
+  "logs": [
+    "$ echo Creating deployment package...",
+    "Creating deployment package...",
+    "$ python -c \"v=open('output/version.txt').read(); u=open('output/unit_test.txt').read(); open('output/package.txt','w').write(v+'\\n'+u+'\\nPackage created successfully')\"",
+    "Traceback (most recent call last):",
+    "  File \"<string>\", line 1, in <module>",
+    "    v=open('output/version.txt').read(); u=open('output/unit_test.txt').read(); open('output/package.txt','w').write(v+'\\n'+u+'\\nPackage created successfully')",
+    "      ~~~~^^^^^^^^^^^^^^^^^^^^^^",
+    "FileNotFoundError: [Errno 2] No such file or directory: 'output/version.txt'",
+    "Command failed with exit code 1, stopping step execution"
+  ],
+  "outputs": {
+    "exit_code": 1,
+    "stdout": [
+      "Creating deployment package..."
+    ],
+    "stderr": [
+      "Traceback (most recent call last):",
+      "  File \"<string>\", line 1, in <module>",
+      "    v=open('output/version.txt').read(); u=open('output/unit_test.txt').read(); open('output/package.txt','w').write(v+'\\n'+u+'\\nPackage created successfully')",
+      "      ~~~~^^^^^^^^^^^^^^^^^^^^^^",
+      "FileNotFoundError: [Errno 2] No such file or directory: 'output/version.txt'"
+    ]
+  },
+  "error_message": "Command failed with exit code 1"
+}

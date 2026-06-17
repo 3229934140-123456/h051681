@@ -1,0 +1,33 @@
+{
+  "step_name": "dependencies",
+  "stage_name": "setup",
+  "status": "failed",
+  "exit_code": 1,
+  "started_at": "2026-06-17T10:47:00.567253",
+  "completed_at": "2026-06-17T10:47:00.709946",
+  "logs": [
+    "$ echo Installing dependencies...",
+    "Installing dependencies...",
+    "$ python -c \"open('output/deps.txt', 'w').write('Dependencies installed')\"",
+    "Traceback (most recent call last):",
+    "  File \"<string>\", line 1, in <module>",
+    "    open('output/deps.txt', 'w').write('Dependencies installed')",
+    "    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^",
+    "FileNotFoundError: [Errno 2] No such file or directory: 'output/deps.txt'",
+    "Command failed with exit code 1, stopping step execution"
+  ],
+  "outputs": {
+    "exit_code": 1,
+    "stdout": [
+      "Installing dependencies..."
+    ],
+    "stderr": [
+      "Traceback (most recent call last):",
+      "  File \"<string>\", line 1, in <module>",
+      "    open('output/deps.txt', 'w').write('Dependencies installed')",
+      "    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^",
+      "FileNotFoundError: [Errno 2] No such file or directory: 'output/deps.txt'"
+    ]
+  },
+  "error_message": "Command failed with exit code 1"
+}
